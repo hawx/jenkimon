@@ -16,15 +16,13 @@ $(function() {
 
     function getAllJobs() {
         var url = baseUrl + "/api/json?depth=2&tree=jobs[name,color,downstreamProjects[name],upstreamProjects[name],lastBuild[number,builtOn,duration,estimatedDuration,timestamp,result,actions[causes[shortDescription,upstreamProject,upstreamBuild],lastBuiltRevision[branch[name]]],changeSet[items[msg,author[fullName],date]]]]";
-        
+
         $.ajax({
             url: url,
             timeout: 5000
       }).done(function(data) {
           var list = $('ul');
           list.html("");
-
-          console.log(data.jobs.length);
 
           for (var i = 0; i < data.jobs.length; i++) {
             var job = data.jobs[i];
@@ -45,8 +43,6 @@ $(function() {
                           "<div class=\"bar\"></div>" +
                           "</li>");
 
-              console.log(job);
-
               var durationTime =  Date.now() - job.lastBuild.timestamp;
               var estimatedDuration = job.lastBuild.estimatedDuration;
 
@@ -60,7 +56,9 @@ $(function() {
             }
           }
         }).fail(function() {
-            console.log("error contacting build server");
+            var list = $('ul');
+            list.html("");
+            list.append("<li class=\"failed\"><h1>Error contacting build server&hellip;</h1></li>");
         });
     }
 
