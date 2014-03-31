@@ -1,18 +1,98 @@
-$(function() {
-    var baseUrl = window.location.hash.substring(1);
+function get(n) {
+    var half = location.search.split(n + "=")[1];
+    return half ? decodeURIComponent(half.split("&")[0]) : null;
+}
 
-    function colorToStatus(color) {
-      if (color == "blue")
+function percentFinished(startedAt, estimatedDuration) {
+    var duration = Date.now() - startedAt;
+    var percentage = Math.round((duration / estimatedDuration) * 100);
+
+    return percentage > 100 ? 100 : percentage;
+}
+
+function getStatus(colour) {
+    switch (colour) {
+    case "blue":
         return "not-building";
+    case "red":
+        return "failed";
+    case "red_anime":
+        return "was-failed in-progress";
+    case "blue_anime":
+        return "was-built in-progress";
+    default:
+        return "no-change";
+    }
+}
 
-      if (color == "red")
+function getVerb(status) {
+    if (status.indexOf("in-progress") != -1)
+        return "started";
+
+    if (status == "failed")
         return "failed";
 
-      if (color.match(/_anime$/))
-        return "in-progress";
+    return "finished";
+}
 
-      return "no-change";
+var Job = function(opts) {
+    var status = getStatus(opts.colour);
+
+    var li = document.createElement("li");
+    li.className = status;
+
+    var h1 = document.createElement("h1");
+    h1.appendChild(document.createTextNode(opts.name));
+
+    var time = document.createElement("time");
+    var timeText = document.createTextNode(getVerb(status) + " " + opts.fromNow);
+    time.appendChild(timeText);
+
+    li.appendChild(h1);
+    li.appendChild(time);
+
+    var bar = document.createElement("div");
+    bar.classList.add("bar");
+    bar.setAttribute("style", "width: " + opts.percentage + "%;");
+
+    li.appendChild(bar);
+
+    return {
+        draw: function() {
+            return li;
+        },
+        update: function(values) {
+            var status = getStatus(values.colour);
+            li.className = status;
+
+            timeText.textContent = getVerb(status) + " " + values.fromNow;
+
+            bar.setAttribute("style", "width: " + values.percentage + "%;");
+        }
     }
+}
+
+var Jobs = function(el) {
+    var ul = $(el);
+    ul.html("");
+
+    var _jobs = {};
+
+    return {
+        update: function(values) {
+            if (_jobs[values.name] === void 0) {
+                _jobs[values.name] = new Job(values);
+                ul.append(_jobs[values.name].draw());
+            } else {
+                _jobs[values.name].update(values);
+            }
+        }
+    }
+}
+
+$(function() {
+    var jobs = new Jobs('ul');
+    var baseUrl = get("url");
 
     function getAllJobs() {
         var url = baseUrl + "/api/json?depth=2&tree=jobs[name,color,downstreamProjects[name],upstreamProjects[name],lastBuild[number,builtOn,duration,estimatedDuration,timestamp,result,actions[causes[shortDescription,upstreamProject,upstreamBuild],lastBuiltRevision[branch[name]]],changeSet[items[msg,author[fullName],date]]]]";
@@ -20,45 +100,19 @@ $(function() {
         $.ajax({
             url: url,
             timeout: 5000
-      }).done(function(data) {
-          var list = $('ul');
-          list.html("");
+        }).done(function(data) {
+            for (var i = 0; i < data.jobs.length; i++) {
+                var job = data.jobs[i];
 
-          for (var i = 0; i < data.jobs.length; i++) {
-            var job = data.jobs[i];
+                if (job.lastBuild == null) { continue; }
 
-            if (job.lastBuild == null) {
-              continue;
+                var time = moment.unix(job.lastBuild.timestamp / 1000);
+                var percentage = percentFinished(job.lastBuild.timestamp, job.lastBuild.estimatedDuration);
+
+                jobs.update({name: job.name, status: status, fromNow: time.fromNow(), percentage: percentage});
             }
-
-            var time = moment.unix(job.lastBuild.timestamp / 1000);
-            var status = colorToStatus(job.color);
-
-            if (status == "failed") {
-              list.append("<li class=\""+status+"\"><h1>"+job.name+"</h1><time>failed "+time.fromNow()+"</time></li>");
-            } else if (status == "in-progress") {
-              list.append("<li class=\"job-"+i+"\" class=\""+status+"\">" +
-                          "<h1>"+job.name+"</h1>" +
-                          "<time>started "+time.fromNow()+"</time>" +
-                          "<div class=\"bar\"></div>" +
-                          "</li>");
-
-              var durationTime =  Date.now() - job.lastBuild.timestamp;
-              var estimatedDuration = job.lastBuild.estimatedDuration;
-
-              var percentage = Math.round((durationTime / estimatedDuration) * 100);
-
-              if (percentage > 100) { percentage = 100; }
-
-              $('li.job-' + i + ' .bar').css({'width': percentage + '%'});
-            } else {
-              list.append("<li class=\""+status+"\"><h1>"+job.name+"</h1><time>finished "+time.fromNow()+"</time></li>");
-            }
-          }
         }).fail(function() {
-            var list = $('ul');
-            list.html("");
-            list.append("<li class=\"failed\"><h1>Error contacting build server&hellip;</h1></li>");
+            console.log("Error contacting the build server");
         });
     }
 

@@ -35,25 +35,27 @@ li time {
     font-size: 22px;
 }
 
-li .bar {
+li .bar { display: none; }
+
+li.in-progress .bar {
+    display: block;
     position: absolute;
     top: 0;
     left: 0;
-    background: rgba(180, 230, 0, .15);
-    border-right: 1px solid rgba(180, 230, 0, .15);
+    background: hsl(195, 50%, 30%);
     height: 84px;
+    z-index: -999;
+    transition: 1s width;
+}
+
+li.in-progress.was-failed .bar {
+    background: hsl(33, 80%, 30%);
 }
 
 li.failed {
     background: hsl(0, 100%, 30%);
-    -webkit-animation: failed-anim 5s infinite linear;
 }
 
 li.not-building, li.no-change {
     display: none;
-}
-
-@-webkit-keyframes failed-anim {
-    0%, 100% { background: hsl(0, 90%, 30%); }
-    50%      { background: hsl(0, 90%, 40%); }
 }
