@@ -1,81 +1,81 @@
-function get(n) {
-    var half = location.search.split(n + "=")[1];
-    return half ? decodeURIComponent(half.split("&")[0]) : null;
-}
+function getUrlVars() {
+    var vars = [];
+    var pairs = location.search.slice(window.location.href.indexOf('?') + 1).split('&');
 
-function percentFinished(startedAt, estimatedDuration) {
-    var duration = Date.now() - startedAt;
-    var percentage = Math.round((duration / estimatedDuration) * 100);
-
-    return percentage > 100 ? 100 : percentage;
-}
-
-function getStatus(colour) {
-    switch (colour) {
-    case "blue":
-        return "not-building";
-    case "red":
-        return "failed";
-    case "red_anime":
-        return "was-failed in-progress";
-    case "blue_anime":
-        return "was-built in-progress";
-    default:
-        return "no-change";
+    for (var i = 0; i < pairs.length; i++) {
+        var pair = pairs[i].split('=');
+        vars.push(decodeURIComponent(pair[0]));
+        vars[pair[0]] = pair[1];
     }
+
+    return vars;
 }
 
-function getVerb(status) {
-    if (status.indexOf("in-progress") != -1)
-        return "started";
-
-    if (status == "failed")
-        return "failed";
-
-    return "finished";
-}
-
-var Job = function(opts) {
-    var status = getStatus(opts.colour);
-
-    var li = document.createElement("li");
-    li.className = status;
-
-    var h1 = document.createElement("h1");
-    h1.appendChild(document.createTextNode(opts.name));
-
-    var time = document.createElement("time");
-    var timeText = document.createTextNode(getVerb(status) + " " + opts.fromNow);
-    time.appendChild(timeText);
-
-    li.appendChild(h1);
-    li.appendChild(time);
-
-    var bar = document.createElement("div");
-    bar.classList.add("bar");
-    bar.setAttribute("style", "width: " + opts.percentage + "%;");
-
-    li.appendChild(bar);
+var Job = function(values) {
+    var _values = values, li, timeText, bar;
 
     return {
         draw: function() {
+            li = document.createElement("li");
+            li.className = this.status();
+
+            var h1 = document.createElement("h1");
+            h1.appendChild(document.createTextNode(_values.name));
+
+            var time = document.createElement("time");
+            timeText = document.createTextNode(this.verb() + " " + this.time());
+            time.appendChild(timeText);
+
+            li.appendChild(h1);
+            li.appendChild(time);
+
+            bar = document.createElement("div");
+            bar.classList.add("bar");
+            bar.setAttribute("style", "width: " + this.percentage() + "%;");
+
+            li.appendChild(bar);
             return li;
         },
+        status: function() {
+            switch (_values.colour) {
+            case "blue":          return "not-building";
+            case "red":           return "failed";
+            case "red_anime":     return "was-failed in-progress";
+            case "blue_anime":    return "was-built in-progress";
+            case "aborted_anime": return "was-aborted in-progress";
+            default:              return "no-change";
+            }
+        },
+        percentage: function() {
+            var duration = Date.now() - _values.startedAt;
+            var percentage = Math.round((duration / _values.estimatedDuration) * 100);
+
+            return percentage > 100 ? 100 : percentage;
+        },
+        time: function() {
+            return moment.unix(_values.startedAt / 1000).fromNow();
+        },
+        verb: function() {
+            if (this.status().indexOf("in-progress") != -1)
+                return "started";
+
+            if (this.status() == "failed")
+                return "failed";
+
+            return "finished";
+        },
         update: function(values) {
-            var status = getStatus(values.colour);
-            li.className = status;
+            _values = values;
 
-            timeText.textContent = getVerb(status) + " " + values.fromNow;
-
-            bar.setAttribute("style", "width: " + values.percentage + "%;");
+            li.className = this.status();
+            timeText.textContent = this.verb() + " " + this.time();
+            bar.setAttribute("style", "width: " + this.percentage() + "%;");
         }
     }
 }
 
 var Jobs = function(el) {
-    var ul = $(el);
-    ul.html("");
-
+    var ul = $(el).html("");
     var _jobs = {};
 
     return {
@@ -92,7 +92,20 @@ var Jobs = function(el) {
 
 $(function() {
     var jobs = new Jobs('ul');
-    var baseUrl = get("url");
+
+    var vars = getUrlVars();
+    var baseUrl = vars["url"];
+    var theme = vars["theme"];
+    var filters = (vars["filters"] || "").toLowerCase().split(',');
+    var scope = vars["scope"] || "contains";
+    var showInactive = vars["showInactive"];
+
+    var nameMatcher = (scope == "contains")
+        ? function (name, filter) { return name.indexOf(filter) !== -1; }
+        : function (name, filter) { return name.indexOf(filter) === 0; };
+
+    if (theme == "neon") { $('body').addClass('neon'); }
+    if (showInactive)    { $('body').addClass('show-inactive'); }
 
     function getAllJobs() {
         var url = baseUrl + "/api/json?depth=2&tree=jobs[name,color,downstreamProjects[name],upstreamProjects[name],lastBuild[number,builtOn,duration,estimatedDuration,timestamp,result,actions[causes[shortDescription,upstreamProject,upstreamBuild],lastBuiltRevision[branch[name]]],changeSet[items[msg,author[fullName],date]]]]";
@@ -104,12 +117,18 @@ $(function() {
             for (var i = 0; i < data.jobs.length; i++) {
                 var job = data.jobs[i];
 
+                if (filters.length > 0 && !filters.some(function (filter) { return nameMatcher(job.name.toLowerCase(), filter); })) {
+                    continue;
+                }
+
                 if (job.lastBuild == null) { continue; }
 
-                var time = moment.unix(job.lastBuild.timestamp / 1000);
-                var percentage = percentFinished(job.lastBuild.timestamp, job.lastBuild.estimatedDuration);
-
-                jobs.update({name: job.name, status: status, fromNow: time.fromNow(), percentage: percentage});
+                jobs.update({
+                    name: job.name,
+                    colour: job.color,
+                    startedAt: job.lastBuild.timestamp,
+                    estimatedDuration: job.lastBuild.estimatedDuration
+                });
             }
         }).fail(function() {
             console.log("Error contacting the build server");

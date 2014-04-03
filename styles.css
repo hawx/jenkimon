@@ -43,7 +43,7 @@ li.in-progress .bar {
     top: 0;
     left: 0;
     background: hsl(195, 50%, 30%);
-    height: 84px;
+    height: 85px;
     z-index: -999;
     transition: 1s width;
 }
@@ -58,4 +58,58 @@ li.failed {
 
 li.not-building, li.no-change {
     display: none;
+}
+
+.show-inactive li.not-building, .show-inactive .no-change {
+    display: inherit;
+}
+
+li .bar:after, li .bar:before {
+    left: 100%;
+    top: 50%;
+    border: solid transparent;
+    content: " ";
+    height: 0;
+    width: 0;
+    position: absolute;
+    pointer-events: none;
+    margin-top: -42px;
+    border-width: 42px;
+}
+
+
+.neon .bar {
+    background: hsl(115, 100%, 30%);
+}
+
+.neon .bar:before, .neon .bar:after {
+    border-left-color: hsl(115, 100%, 30%);
+}
+
+.neon .failed {
+    background: hsl(316, 100%, 50%);
+}
+
+.neon .was-aborted .bar {
+    background: hsl(115, 100%, 30%);
+}
+
+.neon .was-aborted .bar:before, .neon .was-aborted .bar:after {
+    border-left-color: hsl(115, 100%, 30%);
+}
+
+.neon .was-built .bar {
+    background: #00AC6B;
+}
+
+.neon .was-built .bar:before, .neon .was-built .bar:after {
+    border-left-color: #00AC6B;
+}
+
+.neon .was-failed .bar {
+    background: #FF8100;
+}
+
+.neon .was-failed .bar:before, .neon .was-failed .bar:after {
+    border-left-color: #FF8100;
 }
