@@ -50,7 +50,7 @@ li.failed {
 }
 
 li.not-building, li.no-change {
-    display: none;
+   display: none;
 }
 
 @-webkit-keyframes failed-anim {
