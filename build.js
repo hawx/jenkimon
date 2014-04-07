@@ -1,6 +1,6 @@
 function getUrlVars() {
     var vars = [];
-    var pairs = location.search.slice(window.location.href.indexOf('?') + 1).split('&');
+    var pairs = window.location.search.slice(window.location.href.indexOf('?') + 1).split('&');
 
     for (var i = 0; i < pairs.length; i++) {
         var pair = pairs[i].split('=');
@@ -71,8 +71,8 @@ var Job = function(values) {
             timeText.textContent = this.verb() + " " + this.time();
             bar.setAttribute("style", "width: " + this.percentage() + "%;");
         }
-    }
-}
+    };
+};
 
 var Jobs = function(el) {
     var ul = $(el).html("");
@@ -87,18 +87,18 @@ var Jobs = function(el) {
                 _jobs[values.name].update(values);
             }
         }
-    }
-}
+    };
+};
 
 $(function() {
     var jobs = new Jobs('ul');
 
-    var vars = getUrlVars();
-    var baseUrl = vars["url"];
-    var theme = vars["theme"];
-    var filters = (vars["filters"] || "").toLowerCase().split(',');
-    var scope = vars["scope"] || "contains";
-    var showInactive = vars["showInactive"];
+    var vars = getUrlVars(),
+        baseUrl = vars["server"],
+        theme = vars["theme"],
+        filters = (vars["filters"] || "").toLowerCase().split(','),
+        scope = vars["scope"] || "contains",
+        showInactive = vars["showInactive"];
 
     var nameMatcher = (scope == "contains")
         ? function (name, filter) { return name.indexOf(filter) !== -1; }
@@ -135,6 +135,6 @@ $(function() {
         });
     }
 
-    setInterval(getAllJobs, 5000);
+    window.setInterval(getAllJobs, 5000);
     getAllJobs();
 });
