@@ -48,7 +48,7 @@ li.in-progress .bar {
     transition: 1s width;
 }
 
-li.in-progress.was-failed .bar {
+li.was-failed .bar {
     background: hsl(33, 80%, 30%);
 }
 

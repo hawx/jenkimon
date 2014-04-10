@@ -1,6 +1,6 @@
 function getUrlVars() {
     var vars = [];
-    var pairs = window.location.search.slice(window.location.href.indexOf('?') + 1).split('&');
+    var pairs = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
 
     for (var i = 0; i < pairs.length; i++) {
         var pair = pairs[i].split('=');
