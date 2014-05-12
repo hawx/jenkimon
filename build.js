@@ -78,6 +78,7 @@ var Jobs = function(el) {
     var ul = $(el).html("");
     var _jobs = {};
     var _cbs = {};
+    var lastVerb = null;
 
     return {
         update: function(values) {
@@ -104,11 +105,38 @@ var Jobs = function(el) {
             _cbs[thing] = f;
         },
         done: function() {
-            var f = _cbs[this.verb()];
-            f && f();
+            var v = this.verb();
+            if (v != lastVerb) {
+                var f = _cbs[v];
+                lastVerb = v;
+                f && f();
+            }  
         }
     };
 };
+
+var bonusRound = {
+    cat: {
+        show: function(el) {
+            var i = "<img src=\"http://thecatapi.com/api/images/get.php?format=src&amp;type=gif&t=" + new Date().getTime() + "\">";
+            el.show();
+            el.html(i);
+        },
+        hide: function(el) {
+            el.hide();
+        }
+    },
+    porkour: {
+        show: function(el) {
+            var i = "<img src=\"http://i.imgur.com/pIxorOD.gif\">";
+            el.show();
+            el.html(i);
+        },
+        hide: function(el) {
+            el.hide();
+        }
+    }
+}
 
 $(function() {
     var jobs = new Jobs('ul');
@@ -119,7 +147,7 @@ $(function() {
         filters = (vars["filters"] || "").toLowerCase().split(','),
         scope = vars["scope"] || "contains",
         showInactive = vars["showInactive"],
-        cat = vars["cat"];
+        bonusName = vars["bonusRound"];
 
     var nameMatcher = (scope == "contains")
         ? function (name, filter) { return name.indexOf(filter) !== -1; }
@@ -158,21 +186,14 @@ $(function() {
         });
     }
 
-    var box = $('#box');
-    box.hide();
+    var box = $('#box').hide();
 
-    if (cat != void 0) {
-        jobs.on('finished', function() {
-            box.show();
-        });
+    if (bonusName != void 0) {
+        var bonus = bonusRound[bonusName];
 
-        jobs.on('started', function() {
-            box.hide();
-        });
-
-        jobs.on('failed', function() {
-            box.hide();
-        });
+        jobs.on('finished', function() { bonus.show(box) });
+        jobs.on('started', function() { bonus.hide(box) });
+        jobs.on('failed', function() { bonus.hide(box) });
     }
 
     window.setInterval(getAllJobs, 5000);
