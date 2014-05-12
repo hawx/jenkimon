@@ -118,14 +118,14 @@ var Jobs = function(el) {
 var bonusRound = {
     cat: {
         show: function(el) {
-            var i = "<img src=\"http://thecatapi.com/api/images/get.php?format=src&amp;type=gif&t=" + new Date().getTime() + "\">";
+            var i = "<img style=\"height: 100%; width: 100%\" src=\"http://thecatapi.com/api/images/get.php?format=src&amp;type=gif&t=" + new Date().getTime() + "\">";
             el.html(i);
         },
         hide: function(el) {}
     },
     porkour: {
         show: function(el) {
-            var i = "<img src=\"http://i.imgur.com/pIxorOD.gif\">";
+            var i = "<img style=\"height: 100%; width: 100%\" src=\"http://i.imgur.com/pIxorOD.gif\">";
             el.html(i);
         },
         hide: function(el) {}
@@ -137,6 +137,12 @@ var bonusRound = {
         hide: function(el) {
             $('body').css({background: 'black'});
         }
+    },
+    guid: {
+        show: function(el) {
+            el.html("<h1 style=\"margin-top: 25%; text-align: center; font-size: 3em;\">" + Math.uuid() + "</h1>");
+        },
+        hide: function(el) {}
     }
 }
 
