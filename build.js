@@ -77,6 +77,7 @@ var Job = function(values) {
 var Jobs = function(el) {
     var ul = $(el).html("");
     var _jobs = {};
+    var _cbs = {};
 
     return {
         update: function(values) {
@@ -86,6 +87,25 @@ var Jobs = function(el) {
             } else {
                 _jobs[values.name].update(values);
             }
+        },
+        verb: function() {
+            var s = {};
+            for (var job in _jobs) {
+                var v = _jobs[job].verb();
+                if (!s[v]) { s[v] = 0; }
+                s[v] += 1;
+            }
+
+            if (s['failed'] > 0) return 'failed';
+            if (s['started'] > 0) return 'started';
+            return 'finished';
+        },
+        on: function(thing, f) {
+            _cbs[thing] = f;
+        },
+        done: function() {
+            var f = _cbs[this.verb()];
+            f && f();
         }
     };
 };
@@ -98,7 +118,8 @@ $(function() {
         theme = vars["theme"],
         filters = (vars["filters"] || "").toLowerCase().split(','),
         scope = vars["scope"] || "contains",
-        showInactive = vars["showInactive"];
+        showInactive = vars["showInactive"],
+        cat = vars["cat"];
 
     var nameMatcher = (scope == "contains")
         ? function (name, filter) { return name.indexOf(filter) !== -1; }
@@ -130,8 +151,27 @@ $(function() {
                     estimatedDuration: job.lastBuild.estimatedDuration
                 });
             }
+
+            jobs.done();
         }).fail(function() {
             console.log("Error contacting the build server");
+        });
+    }
+
+    var box = $('#box');
+    box.hide();
+
+    if (cat != void 0) {
+        jobs.on('finished', function() {
+            box.show();
+        });
+
+        jobs.on('started', function() {
+            box.hide();
+        });
+
+        jobs.on('failed', function() {
+            box.hide();
         });
     }
 
