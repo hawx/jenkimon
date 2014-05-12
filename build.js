@@ -119,21 +119,23 @@ var bonusRound = {
     cat: {
         show: function(el) {
             var i = "<img src=\"http://thecatapi.com/api/images/get.php?format=src&amp;type=gif&t=" + new Date().getTime() + "\">";
-            el.show();
             el.html(i);
         },
-        hide: function(el) {
-            el.hide();
-        }
+        hide: function(el) {}
     },
     porkour: {
         show: function(el) {
             var i = "<img src=\"http://i.imgur.com/pIxorOD.gif\">";
-            el.show();
             el.html(i);
         },
+        hide: function(el) {}
+    },
+    green: {
+        show: function(el) {
+            $('body').css({background: 'green'});
+        },
         hide: function(el) {
-            el.hide();
+            $('body').css({background: 'black'});
         }
     }
 }
@@ -191,9 +193,9 @@ $(function() {
     if (bonusName != void 0) {
         var bonus = bonusRound[bonusName];
 
-        jobs.on('finished', function() { bonus.show(box) });
-        jobs.on('started', function() { bonus.hide(box) });
-        jobs.on('failed', function() { bonus.hide(box) });
+        jobs.on('finished', function() { box.show(); bonus.show(box) });
+        jobs.on('started', function() { box.hide(); bonus.hide(box) });
+        jobs.on('failed', function() { box.hide(); bonus.hide(box) });
     }
 
     window.setInterval(getAllJobs, 5000);
