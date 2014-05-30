@@ -111,6 +111,9 @@ var Jobs = function(el) {
         lastVerb = v;
         f && f();
       }  
+    },
+    reset: function () {
+      lastVerb = null;
     }
   };
 };
@@ -211,9 +214,11 @@ $(function() {
   window.setInterval(getAllJobs, 5000);
 
   $(document).click(function () {
-    if (xhr == null)
+    if (xhr == null) {
+      jobs.reset();
       getAllJobs();
-  })
+    }
+  });
 
   getAllJobs();
 });
