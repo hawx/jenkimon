@@ -1,3 +1,24 @@
+var Observable = function() {
+  this.subscribers = {};
+}
+
+Observable.prototype.on = function(ev, f) {
+  if (this.subscribers[ev] == void 0) {
+    this.subscribers[ev] = [];
+  }
+  this.subscribers[ev].push(f);
+}
+
+Observable.prototype.fire = function(ev, data) {
+  if (this.subscribers[ev] != void 0) {
+    for (var i = 0; i < this.subscribers[ev].length; i++) {
+      this.subscribers[ev][i](data);
+    }
+  }
+}
+
+
+
 function getUrlVars() {
   var vars = [];
   var pairs = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
@@ -11,19 +32,19 @@ function getUrlVars() {
   return vars;
 }
 
-var Job = function(values) {
-  var _values = values, li, timeText, bar;
+var JobView = function() {
+  var li, bar, timeText;
 
   return {
-    draw: function() {
+    init: function(parent, job, values) {
       li = document.createElement("li");
-      li.className = this.status();
+      li.className = job.status();
 
       var h1 = document.createElement("h1");
-      h1.appendChild(document.createTextNode(_values.name));
+      h1.appendChild(document.createTextNode(values.name));
 
       var time = document.createElement("time");
-      timeText = document.createTextNode(this.verb() + " " + this.time());
+      timeText = document.createTextNode(job.verb() + " " + job.time());
       time.appendChild(timeText);
 
       li.appendChild(h1);
@@ -31,19 +52,34 @@ var Job = function(values) {
 
       bar = document.createElement("div");
       bar.classList.add("bar");
-      bar.setAttribute("style", "width: " + this.percentage() + "%;");
+      bar.setAttribute("style", "width: " + job.percentage() + "%;");
 
       li.appendChild(bar);
-      return li;
+      parent.append(li);
+    },
+    refresh: function(job) {
+      li.className = job.status();
+      timeText.textContent = job.verb() + " " + job.time();
+      bar.setAttribute("style", "width: " + job.percentage() + "%;");
+    }
+  }
+}
+
+var Job = function(values) {
+  var _values = values, view = new JobView();
+
+  return {
+    init: function(parent) {
+      view.init(parent, this, _values);
     },
     status: function() {
       switch (_values.colour) {
-      case "blue":      return "not-building";
-      case "red":       return "failed";
-      case "red_anime":   return "was-failed in-progress";
-      case "blue_anime":  return "was-built in-progress";
+      case "blue":          return "not-building";
+      case "red":           return "failed";
+      case "red_anime":     return "was-failed in-progress";
+      case "blue_anime":    return "was-built in-progress";
       case "aborted_anime": return "was-aborted in-progress";
-      default:        return "no-change";
+      default:              return "no-change";
       }
     },
     percentage: function() {
@@ -66,56 +102,85 @@ var Job = function(values) {
     },
     update: function(values) {
       _values = values;
-
-      li.className = this.status();
-      timeText.textContent = this.verb() + " " + this.time();
-      bar.setAttribute("style", "width: " + this.percentage() + "%;");
+      view.refresh(this);
     }
   };
 };
 
-var Jobs = function(el) {
+var Jobs = function(el, baseUrl, ignore) {
   var ul = $(el).html("");
   var _jobs = {};
   var _cbs = {};
   var lastVerb = null;
+  var _baseUrl = baseUrl;
+  var _ignore = ignore;
+  var observable = new Observable();
 
-  return {
-    update: function(values) {
+  var update = function(data) {
+    for (var i = 0; i < data.jobs.length; i++) {
+      var job = data.jobs[i];
+
+      if (_ignore(job.name)) { continue; }
+      if (job.lastBuild == null) { continue; }
+
+      var values = {
+        name: job.name,
+        colour: job.color,
+        startedAt: job.lastBuild.timestamp,
+        estimatedDuration: job.lastBuild.estimatedDuration
+      };
+
       if (_jobs[values.name] === void 0) {
         _jobs[values.name] = new Job(values);
-        ul.append(_jobs[values.name].draw());
+        _jobs[values.name].init(ul);
       } else {
         _jobs[values.name].update(values);
       }
-    },
-    verb: function() {
-      var s = {};
-      for (var job in _jobs) {
-        var v = _jobs[job].verb();
-        if (!s[v]) { s[v] = 0; }
-        s[v] += 1;
-      }
-
-      if (s['failed'] > 0) return 'failed';
-      if (s['started'] > 0) return 'started';
-      return 'finished';
-    },
-    on: function(thing, f) {
-      _cbs[thing] = f;
-    },
-    done: function() {
-      var v = this.verb();
-      if (v != lastVerb) {
-        var f = _cbs[v];
-        lastVerb = v;
-        f && f();
-      }  
-    },
-    reset: function () {
-      lastVerb = null;
     }
+
+    this.done();
+  }
+
+  observable.on('update', update.bind(this));
+
+  this.on = observable.on.bind(observable);
+
+  this.done = function() {
+    var v = this.verb();
+    if (v != lastVerb) {
+      lastVerb = v;
+      observable.fire(v);
+    }
+  }
+
+  this.poll = function() {
+    var url = _baseUrl + "/api/json?depth=2&tree=jobs[name,color,downstreamProjects[name],upstreamProjects[name],lastBuild[number,builtOn,duration,estimatedDuration,timestamp,result,actions[causes[shortDescription,upstreamProject,upstreamBuild],lastBuiltRevision[branch[name]]],changeSet[items[msg,author[fullName],date]]]]";
+    $.ajax({
+      url: url,
+      timeout: 5000
+    }).done(function(data) { 
+      observable.fire('update', data); 
+    }).fail(function() {
+      observable.fire('fail');
+    });
   };
+  
+  this.verb = function() {
+    var verbs = {};
+    for (var job in _jobs) {
+      var v = _jobs[job].verb();
+      if (!verbs[v]) { verbs[v] = 0; }
+      verbs[v] += 1;
+    }
+
+    if (verbs['failed'] > 0) return 'failed';
+    if (verbs['started'] > 0) return 'started';
+    return 'finished';
+  };
+  
+  this.reset = function () {
+    lastVerb = null;
+  }
 };
 
 var bonusRound = {
@@ -150,56 +215,26 @@ var bonusRound = {
 }
 
 $(function() {
-  var jobs = new Jobs('ul');
-
   var vars = getUrlVars(),
-    baseUrl = vars["server"],
-    theme = vars["theme"],
-    filters = (vars["filters"] || "").toLowerCase().split(','),
-    scope = vars["scope"] || "contains",
-    showInactive = vars["showInactive"],
-    bonusName = vars["bonusRound"];
+      baseUrl = vars["server"],
+      theme = vars["theme"],
+      filters = (vars["filters"] || "").toLowerCase().split(','),
+      scope = vars["scope"] || "contains",
+      showInactive = vars["showInactive"],
+      bonusName = vars["bonusRound"];
 
   var nameMatcher = (scope == "contains")
     ? function (name, filter) { return name.indexOf(filter) !== -1; }
     : function (name, filter) { return name.indexOf(filter) === 0; };
 
+  var ignore = function(name) {
+    return filters.length > 0 && !filters.some(function (filter) { return nameMatcher(name.toLowerCase(), filter); })
+  };
+
+  var jobs = new Jobs('ul', baseUrl, ignore);
+
   if (theme == "neon") { $('body').addClass('neon'); }
   if (showInactive)  { $('body').addClass('show-inactive'); }
-
-  var xhr = null;
-
-  function getAllJobs() {
-    var url = baseUrl + "/api/json?depth=2&tree=jobs[name,color,downstreamProjects[name],upstreamProjects[name],lastBuild[number,builtOn,duration,estimatedDuration,timestamp,result,actions[causes[shortDescription,upstreamProject,upstreamBuild],lastBuiltRevision[branch[name]]],changeSet[items[msg,author[fullName],date]]]]";
-
-    xhr = $.ajax({
-      url: url,
-      timeout: 5000
-    }).done(function(data) {
-      xhr = null;
-
-      for (var i = 0; i < data.jobs.length; i++) {
-        var job = data.jobs[i];
-
-        if (filters.length > 0 && !filters.some(function (filter) { return nameMatcher(job.name.toLowerCase(), filter); })) {
-          continue;
-        }
-
-        if (job.lastBuild == null) { continue; }
-
-        jobs.update({
-          name: job.name,
-          colour: job.color,
-          startedAt: job.lastBuild.timestamp,
-          estimatedDuration: job.lastBuild.estimatedDuration
-        });
-      }
-
-      jobs.done();
-    }).fail(function() {
-      console.log("Error contacting the build server");
-    });
-  }
 
   var box = $('#box').hide();
 
@@ -211,14 +246,16 @@ $(function() {
     jobs.on('failed', function() { box.hide(); bonus.hide(box) });
   }
 
-  window.setInterval(getAllJobs, 5000);
-
-  $(document).click(function () {
-    if (xhr == null) {
-      jobs.reset();
-      getAllJobs();
-    }
+  $(document).on('click', function() { 
+    jobs.reset();
+    jobs.poll();
   });
 
-  getAllJobs();
+  jobs.on('fail', function() {
+    console.log("Error contacting the build server");
+  });
+
+  window.setInterval(function() { jobs.poll(); }, 5000);
+
+  jobs.poll();
 });
