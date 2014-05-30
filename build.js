@@ -7,17 +7,18 @@ Observable.prototype.on = function(ev, f) {
     this.subscribers[ev] = [];
   }
   this.subscribers[ev].push(f);
+  return this;
 }
 
 Observable.prototype.fire = function(ev, data) {
-  if (this.subscribers[ev] != void 0) {
-    for (var i = 0; i < this.subscribers[ev].length; i++) {
-      this.subscribers[ev][i](data);
+  var found = this.subscribers[ev];
+  if (found != void 0) {
+    for (var i = 0; i < found.length; i++) {
+      found[i](data);
     }
   }
+  return this;
 }
-
-
 
 function getUrlVars() {
   var vars = [];
@@ -110,13 +111,12 @@ var Job = function(values) {
 var Jobs = function(el, baseUrl, ignore) {
   var ul = $(el).html("");
   var _jobs = {};
-  var _cbs = {};
-  var lastVerb = null;
+  var lastColor = null;
   var _baseUrl = baseUrl;
   var _ignore = ignore;
   var observable = new Observable();
 
-  var update = function(data) {
+  observable.on('update', function(data) {
     for (var i = 0; i < data.jobs.length; i++) {
       var job = data.jobs[i];
 
@@ -138,20 +138,15 @@ var Jobs = function(el, baseUrl, ignore) {
       }
     }
 
-    this.done();
-  }
-
-  observable.on('update', update.bind(this));
-
-  this.on = observable.on.bind(observable);
-
-  this.done = function() {
-    var v = this.verb();
-    if (v != lastVerb) {
-      lastVerb = v;
-      observable.fire(v);
+    var c = this.color();
+    if (c != lastColor) {
+      lastColor = c;
+      observable.fire(c);
     }
-  }
+  }.bind(this));
+
+  // Events: (update(data), disconnected, red, anime, green)
+  this.on = observable.on.bind(observable);
 
   this.poll = function() {
     var url = _baseUrl + "/api/json?depth=2&tree=jobs[name,color,downstreamProjects[name],upstreamProjects[name],lastBuild[number,builtOn,duration,estimatedDuration,timestamp,result,actions[causes[shortDescription,upstreamProject,upstreamBuild],lastBuiltRevision[branch[name]]],changeSet[items[msg,author[fullName],date]]]]";
@@ -161,11 +156,11 @@ var Jobs = function(el, baseUrl, ignore) {
     }).done(function(data) { 
       observable.fire('update', data); 
     }).fail(function() {
-      observable.fire('fail');
+      observable.fire('disconnected');
     });
   };
   
-  this.verb = function() {
+  this.color = function() {
     var verbs = {};
     for (var job in _jobs) {
       var v = _jobs[job].verb();
@@ -173,44 +168,63 @@ var Jobs = function(el, baseUrl, ignore) {
       verbs[v] += 1;
     }
 
-    if (verbs['failed'] > 0) return 'failed';
-    if (verbs['started'] > 0) return 'started';
-    return 'finished';
+    if (verbs['failed'] > 0) return 'red';
+    if (verbs['started'] > 0) return 'anime';
+    return 'green';
   };
   
   this.reset = function () {
-    lastVerb = null;
+    lastColor = null;
   }
+
+  this.observable = observable;
 };
 
 var bonusRound = {
-  cat: {
-    show: function(el) {
+  cat: function(jobs) {
+    var box = $('#box').hide();
+
+    jobs.on('green', function() {
       var i = "<img style=\"height: 100%; width: 100%\" src=\"http://thecatapi.com/api/images/get.php?format=src&amp;type=gif&t=" + new Date().getTime() + "\">";
-      el.html(i);
-    },
-    hide: function(el) {}
+      box.show();
+      box.html(i);
+    }).on('anime', function() {
+      box.hide();
+    }).on('red', function() {
+      box.hide();
+    });
   },
-  porkour: {
-    show: function(el) {
+  porkour: function(jobs) {
+    var box = $('#box').hide();
+
+    jobs.on('green', function() {
       var i = "<img style=\"height: 100%; width: 100%\" src=\"http://i.imgur.com/pIxorOD.gif\">";
-      el.html(i);
-    },
-    hide: function(el) {}
+      box.show();
+      box.html(i);
+    }).on('anime', function() {
+      box.hide();
+    }).on('red', function() {
+      box.hide();
+    });
   },
-  green: {
-    show: function(el) {
+  green: function(jobs) {
+    jobs.on('green', function() {
       $('body').css({background: 'green'});
-    },
-    hide: function(el) {
+    }).on('anime', function() {
       $('body').css({background: 'black'});
-    }
+    }).on('red', function() {
+      $('body').css({background: 'black'});
+    });
   },
-  guid: {
-    show: function(el) {
-      el.html("<h1 style=\"margin-top: 25%; text-align: center; font-size: 3em;\">" + Math.uuid() + "</h1>");
-    },
-    hide: function(el) {}
+  guid: function(jobs) {
+    jobs.on('green', function() {
+      $('#box').show();
+      $('#box').html("<h1 style=\"margin-top: 25%; text-align: center; font-size: 3em;\">" + Math.uuid() + "</h1>");
+    }).on('anime', function() {
+      $('#box').hide();
+    }).on('red', function() {
+      $('#box').hide();
+    });
   }
 }
 
@@ -236,14 +250,8 @@ $(function() {
   if (theme == "neon") { $('body').addClass('neon'); }
   if (showInactive)  { $('body').addClass('show-inactive'); }
 
-  var box = $('#box').hide();
-
-  if (bonusName != void 0) {
-    var bonus = bonusRound[bonusName];
-
-    jobs.on('finished', function() { box.show(); bonus.show(box) });
-    jobs.on('started', function() { box.hide(); bonus.hide(box) });
-    jobs.on('failed', function() { box.hide(); bonus.hide(box) });
+  if (bonusName != void 0 && bonusRound[bonusName] != void 0) {
+    bonusRound[bonusName](jobs);
   }
 
   $(document).on('click', function() { 
@@ -251,11 +259,10 @@ $(function() {
     jobs.poll();
   });
 
-  jobs.on('fail', function() {
+  jobs.on('disconnected', function() {
     console.log("Error contacting the build server");
   });
 
   window.setInterval(function() { jobs.poll(); }, 5000);
-
   jobs.poll();
 });
