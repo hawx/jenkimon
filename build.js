@@ -228,6 +228,22 @@ var bonusRound = {
   }
 }
 
+var audioz = {
+  classic: function(jobs) {
+    var green = new Audio('audioz/classic/fixed.mp3');
+    var red = new Audio('audioz/classic/failed.mp3');
+    var anime = new Audio('audioz/classic/new.mp3');
+
+    jobs.on('green', function() {
+      green.play();
+    }).on('anime', function() {
+      anime.play();
+    }).on('red', function() {
+      red.play();
+    });
+  }
+}
+
 $(function() {
   var vars = getUrlVars(),
       baseUrl = vars["server"],
@@ -235,7 +251,8 @@ $(function() {
       filters = (vars["filters"] || "").toLowerCase().split(','),
       scope = vars["scope"] || "contains",
       showInactive = vars["showInactive"],
-      bonusName = vars["bonusRound"];
+      bonusName = vars["bonusRound"],
+      audiozName = vars['audioz'];
 
   var nameMatcher = (scope == "contains")
     ? function (name, filter) { return name.indexOf(filter) !== -1; }
@@ -252,6 +269,10 @@ $(function() {
 
   if (bonusName != void 0 && bonusRound[bonusName] != void 0) {
     bonusRound[bonusName](jobs);
+  }
+
+  if (audiozName != void 0 && audioz[audiozName] != void 0) {
+    audioz[audiozName](jobs);
   }
 
   $(document).on('click', function() { 
