@@ -154,9 +154,10 @@ var Jobs = function(el, baseUrl, ignore) {
       url: url,
       timeout: 5000
     }).done(function(data) { 
+      observable.fire('connected');
       observable.fire('update', data); 
-    }).fail(function() {
-      observable.fire('disconnected');
+    }).fail(function(err) {
+      observable.fire('disconnected', err);
     });
   };
   
@@ -185,26 +186,22 @@ var bonusRound = {
     var box = $('#box').hide();
 
     jobs.on('green', function() {
-      var i = "<img style=\"height: 100%; width: 100%\" src=\"http://thecatapi.com/api/images/get.php?format=src&amp;type=gif&t=" + new Date().getTime() + "\">";
-      box.show();
-      box.html(i);
+      imageShow("http://thecatapi.com/api/images/get.php?format=src&amp;type=gif&t=" + new Date().getTime());
     }).on('anime', function() {
-      box.hide();
+      imageHide();
     }).on('red', function() {
-      box.hide();
+      imageHide();
     });
   },
   porkour: function(jobs) {
     var box = $('#box').hide();
 
     jobs.on('green', function() {
-      var i = "<img style=\"height: 100%; width: 100%\" src=\"http://i.imgur.com/pIxorOD.gif\">";
-      box.show();
-      box.html(i);
+      imageShow("http://i.imgur.com/pIxorOD.gif")
     }).on('anime', function() {
-      box.hide();
+      imageHide();
     }).on('red', function() {
-      box.hide();
+      imageHide();
     });
   },
   green: function(jobs) {
@@ -244,6 +241,16 @@ var audioz = {
   }
 }
 
+function imageShow(url) {
+  $('body').css({
+      "background-image": 'url("' + url + '")',
+  });
+}
+
+function imageHide() {
+  $('body').css({"background-image": ""});
+}
+
 $(function() {
   var vars = getUrlVars(),
       baseUrl = vars["server"],
@@ -280,8 +287,11 @@ $(function() {
     jobs.poll();
   });
 
-  jobs.on('disconnected', function() {
-    console.log("Error contacting the build server");
+  jobs.on('disconnected', function(err) {
+    console.log("Error contacting the build server", err);
+    imageShow("http://i.stack.imgur.com/jiFfM.jpg");
+  }).on('connected', function() {
+    imageHide();
   });
 
   window.setInterval(function() { jobs.poll(); }, 5000);
