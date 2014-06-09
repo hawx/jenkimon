@@ -149,7 +149,7 @@ var Jobs = function(el, baseUrl, ignore) {
   this.on = observable.on.bind(observable);
 
   this.poll = function() {
-    var url = _baseUrl + "/api/json?depth=2&tree=jobs[name,color,downstreamProjects[name],upstreamProjects[name],lastBuild[number,builtOn,duration,estimatedDuration,timestamp,result,actions[causes[shortDescription,upstreamProject,upstreamBuild],lastBuiltRevision[branch[name]]],changeSet[items[msg,author[fullName],date]]]]";
+    var url = _baseUrl + "/api/json?depth=2&tree=jobs[name,color,lastBuild[number,builtOn,duration,estimatedDuration,timestamp,result]]";
     $.ajax({
       url: url,
       timeout: 5000
