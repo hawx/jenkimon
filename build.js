@@ -273,7 +273,7 @@ function imageHide() {
   $('body').css({"background-image": ""});
 }
 
-$(function() {
+var start = (function() {
   var vars = getUrlVars(),
       baseUrl = vars["server"],
       theme = vars["theme"],
@@ -318,4 +318,8 @@ $(function() {
 
   window.setInterval(function() { jobs.poll(); }, 5000);
   jobs.poll();
+
+  return jobs;
 });
+
+$(start);
