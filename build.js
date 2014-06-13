@@ -66,8 +66,8 @@ var JobView = function() {
   }
 }
 
-var Job = function(values) {
-  var _values = values, view = new JobView();
+var Job = function(values, observable) {
+  var _values = values, _observable = observable, view = new JobView();
 
   return {
     init: function(parent) {
@@ -102,8 +102,28 @@ var Job = function(values) {
       return "finished";
     },
     update: function(values) {
-      _values = values;
       view.refresh(this);
+
+      var transitionFor = function(oldColour, newColour) {
+        if (oldColour === undefined)
+          return "new";
+        if (newColour=="blue" && oldColour=="blue_anime")
+          return "successful";
+        if (newColour=="blue" && oldColour=="red_anime")
+          return "fixed";
+        if (newColour=="red" && oldColour=="blue_anime")
+          return "failed";
+        if (newColour=="red" && oldColour=="red_anime")
+          return "repeatedlyFailing";
+        if (newColour.match(/_anime$/) && !oldColour.match(/_anime$/))
+          return "started";
+        return "noChange";
+      }
+
+      var transition = transitionFor(_values.color, values.color);
+
+      _values = values;
+      observable.fire('job_' + transition);
     }
   };
 };
@@ -131,7 +151,7 @@ var Jobs = function(el, baseUrl, ignore) {
       };
 
       if (_jobs[values.name] === void 0) {
-        _jobs[values.name] = new Job(values);
+        _jobs[values.name] = new Job(values, observable);
         _jobs[values.name].init(ul);
       } else {
         _jobs[values.name].update(values);
@@ -225,19 +245,21 @@ var bonusRound = {
   }
 }
 
-var audioz = {
+var audioList = {
   classic: function(jobs) {
-    var green = new Audio('audioz/classic/fixed.mp3');
-    var red = new Audio('audioz/classic/failed.mp3');
-    var anime = new Audio('audioz/classic/new.mp3');
+    var play = function(path) {
+      var _audio;
+      return function() { 
+        if (_audio === void 0) {
+          _audio = new Audio(path);
+        }
+        _audio.play(); 
+      }
+    }
 
-    jobs.on('green', function() {
-      green.play();
-    }).on('anime', function() {
-      anime.play();
-    }).on('red', function() {
-      red.play();
-    });
+    jobs.on('job_fixed', play('audioz/classic/fixed.mp3'))
+        .on('job_failed', play('audioz/classic/failed.mp3'))
+        .on('job_repeatedlyFailing', play('audioz/classic/repeatedlyFailing.mp3'));
   }
 }
 
@@ -259,7 +281,7 @@ $(function() {
       scope = vars["scope"] || "contains",
       showInactive = vars["showInactive"],
       bonusName = vars["bonusRound"],
-      audiozName = vars['audioz'];
+      audioName = vars['audio'];
 
   var nameMatcher = (scope == "contains")
     ? function (name, filter) { return name.indexOf(filter) !== -1; }
@@ -278,8 +300,8 @@ $(function() {
     bonusRound[bonusName](jobs);
   }
 
-  if (audiozName != void 0 && audioz[audiozName] != void 0) {
-    audioz[audiozName](jobs);
+  if (audioName != void 0 && audioList[audioName] != void 0) {
+    audioList[audioName](jobs);
   }
 
   $(document).on('click', function() { 
