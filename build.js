@@ -55,8 +55,9 @@ var Job = function(values, observable) {
       switch (_values.colour) {
       case "blue":          return "not-building";
       case "red":           return "failed";
-      case "red_anime":     return "was-failed in-progress";
+      case "aborted":       return "aborted";
       case "blue_anime":    return "was-built in-progress";
+      case "red_anime":     return "was-failed in-progress";
       case "aborted_anime": return "was-aborted in-progress";
       default:              return "no-change";
       }
@@ -64,7 +65,7 @@ var Job = function(values, observable) {
     percentage: function() {
       var duration = Date.now() - _values.startedAt;
       var percentage = Math.round((duration / _values.estimatedDuration) * 100);
-
+      
       return percentage > 100 ? 100 : percentage;
     },
     time: function() {
@@ -76,6 +77,9 @@ var Job = function(values, observable) {
 
       if (this.status() == "failed")
         return "failed";
+
+      if (this.status() == "aborted")
+        return "aborted";
 
       return "finished";
     },
@@ -90,16 +94,18 @@ var Job = function(values, observable) {
           if (oldColour == "blue_anime")
             return "successful";
 
-          if (oldColour == "red_anime")
-            return "fixed";
+          return "fixed"; 
         }
 
         if (newColour == "red") {
           if (oldColour == "blue_anime")
             return "failed";
 
-          if (oldColour == "red_anime")
-            return "repeatedlyFailing";
+          return "repeatedlyFailing";
+        }
+
+        if (newColour == "aborted" && oldColour != "aborted") {
+          return "aborted";
         }
 
         if (newColour.match(/_anime$/) && !oldColour.match(/_anime$/))
@@ -145,6 +151,7 @@ var Jobs = function(el, baseUrl, ignore) {
     }
 
     var c = this.color();
+    console.log(c);
     if (c != lastColor) {
       lastColor = c;
       console.log("Colour: ", c);
@@ -176,7 +183,9 @@ var Jobs = function(el, baseUrl, ignore) {
       verbs[v] += 1;
     }
 
-    if (verbs['failed'] > 0) return 'red';
+    console.log(verbs);
+
+    if (verbs['failed'] > 0 || verbs['aborted'] > 0) return 'red';
     if (verbs['started'] > 0) return 'anime';
     return 'green';
   };
@@ -299,10 +308,10 @@ var start = (function() {
     }
   });
 
-  window.setInterval(function() { jobs.poll(); }, 5000);
+  // window.setInterval(function() { jobs.poll(); }, 5000);
   jobs.poll();
 
   return jobs;
 });
 
-$(start);
+// $(start);

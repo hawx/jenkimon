@@ -88,6 +88,14 @@ li .bar:after, li .bar:before {
 }
 
 
+.neon .aborted {
+    background: hsl(20, 1%, 30%);
+}
+
+.neon .failed {
+    background: hsl(316, 100%, 50%);
+}
+
 .neon .bar {
     background: hsl(115, 100%, 30%);
 }
@@ -96,16 +104,12 @@ li .bar:after, li .bar:before {
     border-left-color: hsl(115, 100%, 30%);
 }
 
-.neon .failed {
-    background: hsl(316, 100%, 50%);
-}
-
 .neon .was-aborted .bar {
-    background: hsl(115, 100%, 30%);
+    background: hsl(20, 1%, 30%);
 }
 
 .neon .was-aborted .bar:before, .neon .was-aborted .bar:after {
-    border-left-color: hsl(115, 100%, 30%);
+    border-left-color: hsl(20, 1%, 30%);
 }
 
 .neon .was-built .bar {
