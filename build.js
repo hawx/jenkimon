@@ -11,6 +11,12 @@ window.location.parameters = once(function() {
   return vars;
 })();
 
+var html = function() {
+  this.el = function(name) {
+    return document.createElement(name);
+  }
+};
+
 var JobView = function() {
   var li, bar, timeText;
 
@@ -85,9 +91,6 @@ var Job = function(values, observable) {
       return "finished";
     },
     update: function(values) {
-      _values = values;
-      view.refresh(this);
-
       var transition = function(oldColour, newColour) {
         if (oldColour === undefined)
           return "new";
@@ -114,7 +117,10 @@ var Job = function(values, observable) {
           return "started";
 
         return "noChange";
-      }(_values.color, values.color);
+      }(_values.colour, values.colour);
+      
+      _values = values;
+      view.refresh(this);
       
       observable.fire('job_' + transition);
     }
@@ -162,7 +168,7 @@ var Jobs = function(el, baseUrl, ignore) {
   this.on = observable.on.bind(observable);
 
   this.poll = function() {
-    var url = _baseUrl + "/api/json?depth=2&tree=jobs[name,color,lastBuild[number,builtOn,duration,estimatedDuration,timestamp,result]]";
+    var url = _baseUrl + "/api/json?tree=jobs[name,color,lastBuild[number,builtOn,duration,estimatedDuration,timestamp,result]]";
     $.ajax({
       url: url,
       timeout: 5000
