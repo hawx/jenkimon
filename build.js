@@ -169,14 +169,12 @@ var Jobs = function(el, baseUrl, ignore) {
 
   this.poll = function() {
     var url = _baseUrl + "/api/json?tree=jobs[name,color,lastBuild[number,builtOn,duration,estimatedDuration,timestamp,result]]";
-    $.ajax({
-      url: url,
-      timeout: 5000
-    }).done(function(data) { 
+
+    http.get(url).then(function(data) {
       observable.fire('connected');
       observable.fire('update', data); 
-    }).fail(function(err) {
-      observable.fire('disconnected', err);
+    }).catch(function(error) {
+      observable.fire('disconnected', error);
     });
   };
   
@@ -223,6 +221,7 @@ var bonusRound = {
     });
   },
   guid: function(jobs) {
+    $('body').prepend('<div id="box"></div>');
     var box = $('#box').hide();
 
     jobs.on('green', function() {
