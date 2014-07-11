@@ -48,6 +48,7 @@ var Job = function(values, observable) {
   var _values = values, _observable = observable, view = new JobView();
 
   return {
+    name: _values.name,
     init: function(parent) {
       view.init(parent, this, _values);
     },
@@ -84,6 +85,7 @@ var Job = function(values, observable) {
       return "finished";
     },
     update: function(values) {
+      _values = values;
       view.refresh(this);
 
       var transition = function(oldColour, newColour) {
@@ -113,8 +115,7 @@ var Job = function(values, observable) {
 
         return "noChange";
       }(_values.color, values.color);
-
-      _values = values;
+      
       observable.fire('job_' + transition);
     }
   };
@@ -304,10 +305,10 @@ var start = (function() {
     }
   });
 
-  // window.setInterval(function() { jobs.poll(); }, 5000);
+  window.setInterval(function() { jobs.poll(); }, 5000);
   jobs.poll();
 
   return jobs;
 });
 
-// $(start);
+$(start);
