@@ -14,7 +14,6 @@ Observable.prototype.on = leftVariadic(function(evs, f) {
 });
 
 Observable.prototype.fire = function(ev, data) {
-  console.log("firing:", ev, this.subscribers[ev]);
   var found = this.subscribers[ev];
   if (found != void 0) {
     for (var i = 0; i < found.length; i++) {

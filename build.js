@@ -65,7 +65,7 @@ var Job = function(values, observable) {
     percentage: function() {
       var duration = Date.now() - _values.startedAt;
       var percentage = Math.round((duration / _values.estimatedDuration) * 100);
-      
+
       return percentage > 100 ? 100 : percentage;
     },
     time: function() {
@@ -151,10 +151,8 @@ var Jobs = function(el, baseUrl, ignore) {
     }
 
     var c = this.color();
-    console.log(c);
     if (c != lastColor) {
       lastColor = c;
-      console.log("Colour: ", c);
       observable.fire(c);
     }
   }.bind(this));
@@ -182,8 +180,6 @@ var Jobs = function(el, baseUrl, ignore) {
       if (!verbs[v]) { verbs[v] = 0; }
       verbs[v] += 1;
     }
-
-    console.log(verbs);
 
     if (verbs['failed'] > 0 || verbs['aborted'] > 0) return 'red';
     if (verbs['started'] > 0) return 'anime';
