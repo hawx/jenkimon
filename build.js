@@ -1,28 +1,6 @@
-var Observable = function() {
-  this.subscribers = {};
-}
-
-Observable.prototype.on = function(ev, f) {
-  if (this.subscribers[ev] == void 0) {
-    this.subscribers[ev] = [];
-  }
-  this.subscribers[ev].push(f);
-  return this;
-}
-
-Observable.prototype.fire = function(ev, data) {
-  var found = this.subscribers[ev];
-  if (found != void 0) {
-    for (var i = 0; i < found.length; i++) {
-      found[i](data);
-    }
-  }
-  return this;
-}
-
-function getUrlVars() {
+window.location.parameters = once(function() {
   var vars = [];
-  var pairs = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+  var pairs = window.location.search.slice(1).split('&');
 
   for (var i = 0; i < pairs.length; i++) {
     var pair = pairs[i].split('=');
@@ -31,7 +9,7 @@ function getUrlVars() {
   }
 
   return vars;
-}
+})();
 
 var JobView = function() {
   var li, bar, timeText;
@@ -104,23 +82,31 @@ var Job = function(values, observable) {
     update: function(values) {
       view.refresh(this);
 
-      var transitionFor = function(oldColour, newColour) {
+      var transition = function(oldColour, newColour) {
         if (oldColour === undefined)
           return "new";
-        if (newColour=="blue" && oldColour=="blue_anime")
-          return "successful";
-        if (newColour=="blue" && oldColour=="red_anime")
-          return "fixed";
-        if (newColour=="red" && oldColour=="blue_anime")
-          return "failed";
-        if (newColour=="red" && oldColour=="red_anime")
-          return "repeatedlyFailing";
+
+        if (newColour == "blue") {
+          if (oldColour == "blue_anime")
+            return "successful";
+
+          if (oldColour == "red_anime")
+            return "fixed";
+        }
+
+        if (newColour == "red") {
+          if (oldColour == "blue_anime")
+            return "failed";
+
+          if (oldColour == "red_anime")
+            return "repeatedlyFailing";
+        }
+
         if (newColour.match(/_anime$/) && !oldColour.match(/_anime$/))
           return "started";
-        return "noChange";
-      }
 
-      var transition = transitionFor(_values.color, values.color);
+        return "noChange";
+      }(_values.color, values.color);
 
       _values = values;
       observable.fire('job_' + transition);
@@ -161,6 +147,7 @@ var Jobs = function(el, baseUrl, ignore) {
     var c = this.color();
     if (c != lastColor) {
       lastColor = c;
+      console.log("Colour: ", c);
       observable.fire(c);
     }
   }.bind(this));
@@ -203,43 +190,33 @@ var Jobs = function(el, baseUrl, ignore) {
 
 var bonusRound = {
   cat: function(jobs) {
-    var box = $('#box').hide();
-
     jobs.on('green', function() {
       imageShow("http://thecatapi.com/api/images/get.php?format=src&amp;type=gif&t=" + new Date().getTime());
-    }).on('anime', function() {
-      imageHide();
-    }).on('red', function() {
+    }).on('anime', 'red', function() {
       imageHide();
     });
   },
   porkour: function(jobs) {
-    var box = $('#box').hide();
-
     jobs.on('green', function() {
       imageShow("http://i.imgur.com/pIxorOD.gif")
-    }).on('anime', function() {
-      imageHide();
-    }).on('red', function() {
+    }).on('anime', 'red', function() {
       imageHide();
     });
   },
   green: function(jobs) {
     jobs.on('green', function() {
       $('body').css({background: 'green'});
-    }).on('anime', function() {
-      $('body').css({background: 'black'});
-    }).on('red', function() {
+    }).on('anime', 'red', function() {
       $('body').css({background: 'black'});
     });
   },
   guid: function(jobs) {
+    var box = $('#box').hide();
+
     jobs.on('green', function() {
       $('#box').show();
       $('#box').html("<h1 style=\"margin-top: 25%; text-align: center; font-size: 3em;\">" + Math.uuid() + "</h1>");
-    }).on('anime', function() {
-      $('#box').hide();
-    }).on('red', function() {
+    }).on('anime', 'red', function() {
       $('#box').hide();
     });
   }
@@ -274,7 +251,7 @@ function imageHide() {
 }
 
 var start = (function() {
-  var vars = getUrlVars(),
+  var vars = window.location.parameters,
       baseUrl = vars["server"],
       theme = vars["theme"],
       filters = (vars["filters"] || "").toLowerCase().split(','),
@@ -309,11 +286,17 @@ var start = (function() {
     jobs.poll();
   });
 
+  var isConnected = true;
+
   jobs.on('disconnected', function(err) {
     console.log("Error contacting the build server", err);
     imageShow("http://i.stack.imgur.com/jiFfM.jpg");
+    isConnected = false;
   }).on('connected', function() {
-    imageHide();
+    if (!isConnected) {
+      imageHide();
+      isConnected = true;
+    }
   });
 
   window.setInterval(function() { jobs.poll(); }, 5000);
