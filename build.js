@@ -230,6 +230,18 @@ var bonusRound = {
     }).on('anime', 'red', function() {
       $('#box').hide();
     });
+  },  
+  eightbit: function(jobs) {    
+	$('body').prepend('<div id="box"></div>');
+    var box = $('#box').hide();
+	
+    jobs.on('green', function() {
+      $('#box').show();
+      $('#box').html('<iframe width="' + $(window).width() + '" height="' + $(window).height() + '" src="8bit.html?sound=0" style="border: 0;" />');
+    }).on('anime', 'red', function() {
+      $('#box').html('');
+	  $('#box').hide();
+    });
   }
 }
 
