@@ -237,7 +237,7 @@ var bonusRound = {
 	
     jobs.on('green', function() {
       $('#box').show();
-      $('#box').html('<iframe width="' + $(window).width() + '" height="' + $(window).height() + '" src="8bit.html?sound=0" style="border: 0;" />');
+      $('#box').html('<iframe width="' + $(window).width() + '" height="' + $(window).height() + '" src="8bit.html?sound=0" style="border: 0;"/>');
     }).on('anime', 'red', function() {
       $('#box').html('');
 	  $('#box').hide();
