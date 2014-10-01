@@ -1,7 +1,7 @@
 # jenkimon
 
 Either download and open `/path/to/index.html?server=http://myjenkins`, or visit
-<http://hawx.github.io/jenkimon?server=http://myjenkins> where the value of
+<http://esendex.github.io/jenkimon?server=http://myjenkins> where the value of
 `?server=` is set to the url (including protocol) of the root of your jenkins
 install.
 
