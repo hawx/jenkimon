@@ -96,6 +96,10 @@ li .bar:after, li .bar:before {
     background: hsl(316, 100%, 50%);
 }
 
+.neon .unstable {
+    background: #DFDF15;
+}
+
 .neon .bar {
     background: hsl(115, 100%, 30%);
 }

@@ -62,9 +62,11 @@ var Job = function(values, observable) {
       switch (_values.colour) {
       case "blue":          return "not-building";
       case "red":           return "failed";
+      case "yellow":        return "unstable"; //HERE
       case "aborted":       return "aborted";
       case "blue_anime":    return "was-built in-progress";
-      case "red_anime":     return "was-failed in-progress";
+      case "red_anime": return "was-failed in-progress";
+      case "yellow_anime": return "was-failed in-progress";
       case "aborted_anime": return "was-aborted in-progress";
       default:              return "no-change";
       }
@@ -83,7 +85,10 @@ var Job = function(values, observable) {
         return "started";
 
       if (this.status() == "failed")
-        return "failed";
+          return "failed";
+
+      if (this.status() == "unstable") //HERE
+          return "unstable";
 
       if (this.status() == "aborted")
         return "aborted";
@@ -93,7 +98,10 @@ var Job = function(values, observable) {
     update: function(values) {
       var transition = function(oldColour, newColour) {
         if (oldColour === undefined)
-          return "new";
+            return "new";
+
+        if (oldColour === "yellow")
+            return "unstable";
 
         if (newColour == "blue") {
           if (oldColour == "blue_anime")
@@ -187,6 +195,7 @@ var Jobs = function(el, baseUrl, ignore) {
     }
 
     if (verbs['failed'] > 0 || verbs['aborted'] > 0) return 'red';
+    if (verbs['unstable'] > 0) return 'yellow'; //HERE
     if (verbs['started'] > 0) return 'anime';
     return 'green';
   };
