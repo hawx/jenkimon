@@ -14,3 +14,10 @@ Name           | Description
 `filters`      | Comma separated list of words to filter displayed jobs by
 `scope`        | Set to "startsWith" to filter by matching the left side of the job name
 `showInactive` | Set to anything to show inactive jobs
+`bonusRound`   | Choose something to display when "green"
+
+### Bonus Rounds
+
+- green
+- cat
+- porkour
