@@ -95,8 +95,12 @@ li .bar:after, li .bar:before {
     background: hsl(20, 1%, 30%);
 }
 
-.neon .failed {
+.neon .unstable {
     background: hsl(316, 100%, 50%);
+}
+
+.neon .failed {
+    background: hsl(340, 100%, 50%);
 }
 
 .neon .bar {
@@ -116,17 +120,17 @@ li .bar:after, li .bar:before {
 }
 
 .neon .was-built .bar {
-    background: #00AC6B;
+    background: hsl(157, 100%, 34%);
 }
 
 .neon .was-built .bar:before, .neon .was-built .bar:after {
-    border-left-color: #00AC6B;
+    border-left-color: hsl(157, 100%, 34%);
 }
 
 .neon .was-failed .bar {
-    background: #FF8100;
+    background: hsl(30, 100%, 50%);
 }
 
 .neon .was-failed .bar:before, .neon .was-failed .bar:after {
-    border-left-color: #FF8100;
+    border-left-color: hsl(30, 100%, 50%);
 }
