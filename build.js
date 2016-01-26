@@ -233,24 +233,6 @@ var bonusRound = {
   }
 }
 
-var audioList = {
-  classic: function(jobs) {
-    var play = function(path) {
-      var _audio;
-      return function() { 
-        if (_audio === void 0) {
-          _audio = new Audio(path);
-        }
-        _audio.play(); 
-      }
-    }
-
-    jobs.on('job_fixed', play('audioz/classic/fixed.mp3'))
-        .on('job_failed', play('audioz/classic/failed.mp3'))
-        .on('job_repeatedlyFailing', play('audioz/classic/repeatedlyFailing.mp3'));
-  }
-}
-
 function imageShow(url) {
   $('body').css({
       "background-image": 'url("' + url + '")',
@@ -268,8 +250,7 @@ var start = (function() {
       filters = (vars["filters"] || "").toLowerCase().split(','),
       scope = vars["scope"] || "contains",
       showInactive = vars["showInactive"],
-      bonusName = vars["bonusRound"],
-      audioName = vars['audio'];
+      bonusName = vars["bonusRound"];
 
   var nameMatcher = (scope == "contains")
     ? function (name, filter) { return name.indexOf(filter) !== -1; }
@@ -286,10 +267,6 @@ var start = (function() {
 
   if (bonusName != void 0 && bonusRound[bonusName] != void 0) {
     bonusRound[bonusName](jobs);
-  }
-
-  if (audioName != void 0 && audioList[audioName] != void 0) {
-    audioList[audioName](jobs);
   }
 
   $(document).on('click', function() { 
